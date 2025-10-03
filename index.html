@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trainer • PWA</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Trainer</h1>
+    </div>
+    <div class="right">
+      <button id="installBtn" class="ghost" style="display:none">Installer</button>
+      <button id="historyBtn" class="ghost">Historique</button>
+      <button id="settingsBtn" class="ghost">Réglages</button>
+    </div>
+  </header>
+
+  <main id="screen">
+    <section id="home" class="panel">
+      <h2>Ta séance</h2>
+      <div class="grid2">
+        <label class="input">
+          <span>Date</span>
+          <input type="date" id="dateInput">
+        </label>
+        <label class="input">
+          <span>Repos entre rounds (sec)</span>
+          <input type="number" id="restInput" min="30" max="180" value="75">
+        </label>
+      </div>
+      <div class="program-outline" id="outline"></div>
+      <div class="row gap">
+        <button id="startBtn" class="primary">Démarrer la séance</button>
+        <button id="resumeBtn" class="secondary">Reprendre</button>
+      </div>
+    </section>
+
+    <section id="player" class="panel hidden">
+      <div class="breadcrumbs" id="crumbs"></div>
+      <div class="exercise-card">
+        <div class="imgwrap" id="imageArea" aria-label="illustration exercice"></div>
+        <div class="exoname" id="exoName"></div>
+        <div class="exodesc" id="exoDesc"></div>
+        <div class="timer">
+          <div id="timerDisplay">00:00</div>
+          <div class="row gap">
+            <button id="timerStart" class="secondary">▶︎</button>
+            <button id="timerPause" class="secondary">⏸</button>
+            <button id="timerReset" class="secondary">↺</button>
+          </div>
+        </div>
+        <div class="row gap">
+          <button id="markOk" class="ok">Réussi ✅</button>
+          <button id="markFail" class="fail">Raté ❌</button>
+          <button id="skip" class="ghost">Sauter</button>
+        </div>
+      </div>
+      <div class="row space">
+        <button id="prevBtn" class="ghost">← Précédent</button>
+        <button id="nextBtn" class="primary">Suivant →</button>
+      </div>
+    </section>
+
+    <section id="history" class="panel hidden">
+      <h2>Historique</h2>
+      <div id="historyList"></div>
+      <div class="row right">
+        <button id="closeHistory" class="ghost">Fermer</button>
+      </div>
+    </section>
+
+    <section id="settings" class="panel hidden">
+      <h2>Réglages</h2>
+      <label class="switch">
+        <input type="checkbox" id="soundToggle">
+        <span>Sons du chrono</span>
+      </label>
+      <div class="row right">
+        <button id="closeSettings" class="ghost">Fermer</button>
+      </div>
+    </section>
+
+    <section id="done" class="panel hidden center">
+      <h2>Séance terminée 🎉</h2>
+      <p>Bien joué ! Tes résultats ont été enregistrés.</p>
+      <button id="goHome" class="primary">Retour</button>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <small>Offline PWA • données stockées localement</small>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(console.error);
+    }
+  </script>
+</body>
+</html>
