@@ -1,7 +1,7 @@
 {
   "name": "Entraînement PWA",
   "short_name": "Entraînement",
-  "start_url": ".",
+  "start_url": "/Workout-pwa/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0b79d0",
