@@ -1,9 +1,11 @@
-
+// Trainer PWA — step-by-step + timers + editable history
 document.addEventListener('DOMContentLoaded',()=>{
+
   const $ = (s)=>document.querySelector(s);
 
-  function ex(key, name, desc, cfg){ return { key, name, desc, cfg }; }
+  function ex(key,name,desc,cfg){ return { key,name,desc,cfg }; }
 
+  // --- Programme propre ---
   const PROGRAM = [
     { type:'block', name:'Échauffement', rounds:1, items:[
       ex('neck_lr','Mobilité nuque : gauche/droite','Lent et contrôlé. 30s gauche + 30s droite.',{mode:'time',seconds:60}),
@@ -42,7 +44,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]},
 
     { type:'block', name:'Abdos', rounds:4, rest:45, items:[
-      ex('lsit','L‑sit — apprentissage','Tuck → one‑leg → full. Tiens le plus longtemps.',{mode:'stopwatch'}),
+      ex('lsit','L-sit — apprentissage','Tuck → one-leg → full. Tiens le plus longtemps.',{mode:'stopwatch'}),
       ex('ab_wheel','Roue abdos','10 reps',{mode:'reps',reps:10}),
       ex('leg_raise','Relevés de jambes allongé','15 reps (dos plaqué)',{mode:'reps',reps:15}),
       ex('superman','Superman','15 reps',{mode:'reps',reps:15}),
@@ -54,18 +56,28 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]},
   ];
 
-  // Panels
+  // --- Panneaux & éléments
   const panels = {
-    home: document.querySelector('#home'),
-    player: document.querySelector('#player'),
-    history: document.querySelector('#history'),
-    settings: document.querySelector('#settings'),
-    done: document.querySelector('#done'),
+    home: $('#home'),
+    player: $('#player'),
+    history: $('#history'),
+    settings: $('#settings'),
+    done: $('#done'),
   };
-  function show(id){ Object.values(panels).forEach(p=>p.classList.add('hidden')); panels[id].classList.remove('hidden'); }
+  const outline = $('#outline');
+  const crumbs = $('#crumbs'), imageArea = $('#imageArea'),
+        exoName = $('#exoName'), exoDesc = $('#exoDesc');
+  const tDisp = $('#timerDisplay'), tStart = $('#timerStart'),
+        tPause = $('#timerPause'), tReset = $('#timerReset');
+  const markOk = $('#markOk'), markFail = $('#markFail'), skipBtn = $('#skip');
+  const prevBtn = $('#prevBtn'), nextBtn = $('#nextBtn');
 
-  // Outline
-  const outline = document.querySelector('#outline');
+  const STORAGE_KEY='trainer_sessions';
+
+  function show(id){ Object.values(panels).forEach(p=>p.classList.add('hidden')); panels[id].classList.remove('hidden'); }
+  function fmt(t){ const m=Math.floor(t/60), s=t%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+
+  // --- Rendu du plan
   function renderOutline(){
     outline.innerHTML='';
     PROGRAM.forEach(b=>{
@@ -78,62 +90,51 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   renderOutline();
 
-  // Storage
-  const STORAGE_KEY='trainer_sessions';
+  // --- Storage
   function loadSessions(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return[]} }
   function saveSessions(a){ localStorage.setItem(STORAGE_KEY, JSON.stringify(a)); }
 
-  // Home
-  document.querySelector('#dateInput').value = new Date().toISOString().slice(0,10);
-  document.querySelector('#startBtn').addEventListener('click', ()=>{
-    state = { date: document.querySelector('#dateInput').value, rest: parseInt(document.querySelector('#restInput').value||'75',10),
+  // --- Accueil
+  $('#dateInput').value = new Date().toISOString().slice(0,10);
+  $('#startBtn').addEventListener('click', ()=>{
+    state = { date: $('#dateInput').value, rest: parseInt($('#restInput').value||'75',10),
       iBlock:0, iRound:1, iItem:0, startedAt: new Date().toISOString(), log:[] };
     persist(); startPlayer();
   });
-  document.querySelector('#resumeBtn').addEventListener('click', ()=>{
+  $('#resumeBtn').addEventListener('click', ()=>{
     const arr = loadSessions(); const last=arr[arr.length-1];
     if(!last || last.finishedAt){ alert('Aucune séance en cours.'); return; }
     state = last.runtime; startPlayer();
   });
-  document.querySelector('#historyBtn').addEventListener('click', ()=>{ renderHistory(); show('history'); });
-  document.querySelector('#closeHistory').addEventListener('click', ()=> show('home'));
+  $('#historyBtn').addEventListener('click', ()=>{ renderHistory(); show('history'); });
+  $('#closeHistory').addEventListener('click', ()=> show('home'));
+  $('#settingsBtn').addEventListener('click', ()=> show('settings'));
+  $('#closeSettings').addEventListener('click', ()=> show('home'));
 
-  function renderHistory(){
-    const list = document.querySelector('#historyList'); list.innerHTML='';
-    const arr = loadSessions();
-    if(arr.length===0){ list.textContent='Pas encore de séances.'; return; }
-    arr.slice().reverse().forEach(s=>{
-      const d=document.createElement('div'); d.className='historyItem';
-      d.innerHTML = `<strong>${s.date}</strong> <span class="tag">${new Date(s.startedAt).toLocaleString()}</span>
-        <div class="inline">${s.finishedAt?'terminée ✅':'en cours ⏳'}</div>`;
-      const b=document.createElement('button'); b.className='ghost'; b.textContent='Détails';
-      b.onclick=()=> alert(JSON.stringify(s.log.slice(-12),null,2));
-      d.appendChild(b); list.appendChild(d);
-    });
-  }
+  // --- Son
+  let soundOn=false; $('#soundToggle').addEventListener('change', e=> soundOn=e.target.checked);
+  function beep(){ if(!soundOn) return; try{ new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaW5mbyBiaXQ=').play(); }catch(e){} }
 
-  // Settings
-  document.querySelector('#settingsBtn').addEventListener('click', ()=> show('settings'));
-  document.querySelector('#closeSettings').addEventListener('click', ()=> show('home'));
-  let soundOn=false; document.querySelector('#soundToggle').addEventListener('change', e=> soundOn=e.target.checked);
-
-  // Player
-  const crumbs=document.querySelector('#crumbs'), imageArea=document.querySelector('#imageArea'),
-        exoName=document.querySelector('#exoName'), exoDesc=document.querySelector('#exoDesc');
-  const markOk=document.querySelector('#markOk'), markFail=document.querySelector('#markFail'), skipBtn=document.querySelector('#skip');
-  const prevBtn=document.querySelector('#prevBtn'), nextBtn=document.querySelector('#nextBtn');
-  const tDisp=document.querySelector('#timerDisplay'), tStart=document.querySelector('#timerStart'), tPause=document.querySelector('#timerPause'), tReset=document.querySelector('#timerReset');
-
+  // --- Player
   let state=null;
   let timer={mode:'stopped',sec:0,handle:null};
 
   function startPlayer(){ show('player'); drawCurrent(); }
-
-  function fmt(t){ const m=Math.floor(t/60), s=t%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
   function updateTimer(){ tDisp.textContent = fmt(timer.sec); }
-  function beep(){ if(!soundOn) return; try{ new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaW5mbyBiaXQ=').play(); }catch(e){} }
   function runTimer(down){ stopTimer(); timer.mode = down?'down':'up'; timer.handle = setInterval(()=>{ if(timer.mode==='up'){ timer.sec++; } else { timer.sec--; if(timer.sec<=0){ timer.sec=0; stopTimer(); beep(); } } updateTimer(); },1000); }
   function stopTimer(){ clearInterval(timer.handle); timer.handle=null; timer.mode='stopped'; }
+
+  // --- Icônes simples (SVG inline)
+  const ICON = (label)=>`
+    <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label}">
+      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
+      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
+      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
+        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
+      </g>
+      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">${label}</text>
+    </svg>`;
+  const ICONS = new Proxy({}, { get:(_,k)=>ICON(k) });
 
   function drawCurrent(){
     const b = PROGRAM[state.iBlock];
@@ -141,10 +142,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     crumbs.textContent = `${b.name} • Round ${state.iRound}/${b.rounds||1}`;
     exoName.textContent = it.name;
     exoDesc.textContent = it.desc + (b.rest?` • Repos: ${b.rest}s`:'');
+
     stopTimer();
     timer.sec = it.cfg.mode==='time'?(it.cfg.seconds||30):0;
     updateTimer();
-    imageArea.innerHTML = ICONS[it.key] || ICONS.default;
+
+    imageArea.innerHTML = ICONS[it.key] || ICON('Exercice');
   }
 
   tStart.addEventListener('click', ()=>{ const b=PROGRAM[state.iBlock], it=b.items[state.iItem]; runTimer(it.cfg.mode==='time'); });
@@ -203,260 +206,118 @@ document.addEventListener('DOMContentLoaded',()=>{
     saveSessions(arr);
   }
 
-  // Install prompt
-  let deferredPrompt=null;
-  window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; document.querySelector('#installBtn').style.display='inline-block'; });
-  document.querySelector('#installBtn').addEventListener('click', async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; document.querySelector('#installBtn').style.display='none'; });
+  // --- Historique (édition / suppression)
+  function renderHistory(){
+    const list = $('#historyList'); list.innerHTML='';
+    const arr = loadSessions();
+    if(arr.length===0){ list.textContent='Pas encore de séances.'; return; }
 
-  // Icons
-  window.ICONS = {
-default: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Exercice">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Exercice</text>
-    </svg>`,
-neck_lr: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nuque gauche/droite">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Nuque gauche/droite</text>
-    </svg>`,
-neck_half: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nuque demi-cercles">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Nuque demi-cercles</text>
-    </svg>`,
-shoulders_back: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Épaules arrière">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Épaules arrière</text>
-    </svg>`,
-shoulders_fwd: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Épaules avant">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Épaules avant</text>
-    </svg>`,
-arms_back: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grands cercles arrière">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Grands cercles arrière</text>
-    </svg>`,
-arms_fwd: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grands cercles avant">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Grands cercles avant</text>
-    </svg>`,
-band_disloc: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Élastique dislocates">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Élastique dislocates</text>
-    </svg>`,
-wrists: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Poignets">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Poignets</text>
-    </svg>`,
-elbows: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Coudes">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Coudes</text>
-    </svg>`,
-torso_rot: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rotation buste">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Rotation buste</text>
-    </svg>`,
-spine_roll: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Enroulés colonne">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Enroulés colonne</text>
-    </svg>`,
-wrist_floor: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Poignets au sol">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Poignets au sol</text>
-    </svg>`,
-dead_hang: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dead hang">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Dead hang</text>
-    </svg>`,
-pullups: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tractions">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Tractions</text>
-    </svg>`,
-dips: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dips">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Dips</text>
-    </svg>`,
-squats: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Squats">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Squats</text>
-    </svg>`,
-burpees: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Burpees">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Burpees</text>
-    </svg>`,
-chinups: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chin-ups">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Chin-ups</text>
-    </svg>`,
-pushups: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pompes">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Pompes</text>
-    </svg>`,
-lunges: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fentes">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Fentes</text>
-    </svg>`,
-band_row: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tirage élastique">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Tirage élastique</text>
-    </svg>`,
-band_press: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Poussée élastique">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Poussée élastique</text>
-    </svg>`,
-band_hold: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Isométrique dos">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Isométrique dos</text>
-    </svg>`,
-pike_push: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pompes épaules">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Pompes épaules</text>
-    </svg>`,
-lsit: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="L-sit">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">L-sit</text>
-    </svg>`,
-ab_wheel: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Roue abdos">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Roue abdos</text>
-    </svg>`,
-leg_raise: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Relevés de jambes">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Relevés de jambes</text>
-    </svg>`,
-superman: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Superman">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Superman</text>
-    </svg>`,
-plank: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planche">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Planche</text>
-    </svg>`,
-stretch: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Étirements">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7bc9ff"/></linearGradient></defs>
-      <rect x="6" y="6" rx="14" ry="14" width="188" height="128" fill="#0b1234" stroke="#2f3b77"/>
-      <g stroke="url(#g)" stroke-width="5" stroke-linecap="round" fill="none">
-        <circle cx="100" cy="45" r="14"/><path d="M100 59 L100 95"/><path d="M100 70 L65 85"/><path d="M100 70 L135 85"/><path d="M100 95 L80 120"/><path d="M100 95 L120 120"/>
-      </g>
-      <text x="100" y="130" text-anchor="middle" font-size="12" fill="#c9d6ff">Étirements</text>
-    </svg>`
-  };
+    arr.slice().reverse().forEach((s,revIdx)=>{
+      const realIdx = arr.length-1-revIdx; // index réel dans storage
+      const wrap = document.createElement('div');
+      wrap.className='historyItem';
+
+      const head = document.createElement('div');
+      head.innerHTML = `<strong>${s.date}</strong> <span class="tag">${new Date(s.startedAt).toLocaleString()}</span>
+        <div class="inline">${s.finishedAt?'terminée ✅':'en cours ⏳'}</div>`;
+
+      const actions = document.createElement('div');
+      actions.className = 'row gap';
+      const toggleBtn = document.createElement('button'); toggleBtn.className='secondary big'; toggleBtn.textContent='Gérer';
+      const delSessBtn = document.createElement('button'); delSessBtn.className='fail big'; delSessBtn.textContent='Supprimer séance';
+
+      actions.appendChild(toggleBtn); actions.appendChild(delSessBtn);
+
+      const entries = document.createElement('div');
+      entries.style.marginTop='8px'; entries.style.display='none';
+
+      toggleBtn.onclick = ()=>{
+        entries.style.display = entries.style.display==='none' ? 'block' : 'none';
+        if(entries.dataset.filled!=='1'){
+          renderEntries(entries, s, realIdx);
+          entries.dataset.filled='1';
+        }
+      };
+
+      delSessBtn.onclick = ()=>{
+        if(!confirm('Supprimer toute la séance ?')) return;
+        const all = loadSessions();
+        all.splice(realIdx,1);
+        saveSessions(all);
+        renderHistory();
+      };
+
+      wrap.appendChild(head);
+      wrap.appendChild(actions);
+      wrap.appendChild(entries);
+      list.appendChild(wrap);
+    });
+  }
+
+  function renderEntries(container, session, sessionIndex){
+    container.innerHTML='';
+    if(!session.log || session.log.length===0){
+      container.innerHTML = '<div class="inline">Aucune entrée.</div>';
+      return;
+    }
+    session.log.forEach((entry, entryIndex)=>{
+      const row = document.createElement('div');
+      row.className='entryRow';
+
+      const left = document.createElement('div');
+      left.innerHTML = `<strong>${entry.name}</strong> <span class="tag">${entry.block} • R${entry.round}</span>
+        <div class="inline">${new Date(entry.t).toLocaleString()} • ${entry.timer} • valeur: ${entry.value}</div>`;
+
+      const right = document.createElement('div');
+      right.className='entryControls';
+
+      // Select status
+      const sel = document.createElement('select');
+      sel.className='select';
+      ['ok','fail','skip'].forEach(v=>{
+        const o=document.createElement('option'); o.value=v; o.textContent=v.toUpperCase();
+        if(entry.status===v) o.selected=true;
+        sel.appendChild(o);
+      });
+
+      const saveBtn = document.createElement('button'); saveBtn.className='primary'; saveBtn.textContent='Enregistrer';
+      const delBtn = document.createElement('button'); delBtn.className='fail'; delBtn.textContent='Suppr. entrée';
+
+      saveBtn.onclick = ()=>{
+        const all = loadSessions();
+        all[sessionIndex].log[entryIndex].status = sel.value;
+        saveSessions(all);
+        // feedback
+        saveBtn.textContent='Enregistré ✓'; setTimeout(()=>saveBtn.textContent='Enregistrer', 1200);
+      };
+
+      delBtn.onclick = ()=>{
+        if(!confirm('Supprimer cette entrée ?')) return;
+        const all = loadSessions();
+        all[sessionIndex].log.splice(entryIndex,1);
+        saveSessions(all);
+        renderEntries(container, all[sessionIndex], sessionIndex);
+      };
+
+      right.appendChild(sel);
+      right.appendChild(saveBtn);
+      right.appendChild(delBtn);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      container.appendChild(row);
+    });
+  }
+
+  // --- Install PWA
+  let deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; $('#installBtn').style.display='inline-block'; });
+  $('#installBtn').addEventListener('click', async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; $('#installBtn').style.display='none'; });
+
+  // --- Navigation
+  $('#historyBtn').addEventListener('click', ()=>{ renderHistory(); show('history'); });
+  $('#closeHistory').addEventListener('click', ()=> show('home'));
+  $('#settingsBtn').addEventListener('click', ()=> show('settings'));
+  $('#closeSettings').addEventListener('click', ()=> show('home'));
+  $('#goHome').addEventListener('click', ()=> show('home'));
 });
