@@ -1,1 +1,0 @@
-PWA workout app: ouvrir index.html dans un navigateur moderne (Safari sur iOS), puis 'Ajouter à l'écran d'accueil' pour l'utiliser comme une app. Les séances sont sauvegardées en local (localStorage).
