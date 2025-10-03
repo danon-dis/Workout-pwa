@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Entraînement - PWA</title>
 
-  <!-- Pour Safari iOS -->
+  <!-- ✅ Meta pour Safari iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <!-- Chemins absolus pour GitHub Pages -->
+  <!-- ✅ Chemins absolus pour GitHub Pages -->
   <link rel="manifest" href="/Workout-pwa/manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -66,11 +66,11 @@
 
   <script src="app.js"></script>
   <script>
-    // Service worker registration
+    // ✅ Enregistrement du Service Worker (chemin absolu pour GitHub Pages)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/Workout-pwa/sw.js')
-        .then(reg => console.log('Service Worker enregistré', reg))
-        .catch(err => console.error('Erreur Service Worker', err));
+      navigator.serviceWorker.register('/Workout-pwa/sw.js', { scope: '/Workout-pwa/' })
+        .then(reg => console.log('Service Worker enregistré ✅', reg))
+        .catch(err => console.error('Erreur Service Worker ❌', err));
     }
   </script>
 </body>
