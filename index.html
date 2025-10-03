@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Entraînement - PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Programme d'entraînement</h1>
+    <button id="installBtn" style="display:none">Installer</button>
+  </header>
+
+  <main>
+    <section id="session-controls">
+      <label>Date séance: <input type="date" id="sessionDate"></label>
+      <label>Repos entre circuits (sec): <input type="number" id="restSec" min="30" max="180" value="75"></label>
+      <button id="startSession">Démarrer séance</button>
+      <button id="viewHistory">Voir historique</button>
+    </section>
+
+    <section id="warmup" class="panel hidden">
+      <h2>Échauffement</h2>
+      <ol id="warmupList"></ol>
+      <div class="timerRow">
+        <span id="timerLabel"></span>
+        <button id="startTimer">Démarrer chrono</button>
+        <button id="stopTimer">Stop</button>
+      </div>
+      <button id="doneWarmup">Terminé échauffement</button>
+    </section>
+
+    <section id="circuits" class="panel hidden">
+      <h2>Séance</h2>
+      <div id="circuitContainer"></div>
+      <div class="controls">
+        <button id="next">Suivant</button>
+        <button id="savePartial">Sauvegarder</button>
+      </div>
+    </section>
+
+    <section id="history" class="panel hidden">
+      <h2>Historique</h2>
+      <div id="historyList"></div>
+      <button id="closeHistory">Fermer</button>
+    </section>
+
+    <section id="done" class="panel hidden">
+      <h2>Séance terminée ✅</h2>
+      <button id="goHome">Retour</button>
+    </section>
+  </main>
+
+  <footer>
+    <small>Offline-ready PWA • Les séances sont stockées localement sur ton appareil.</small>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    // Service worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(console.error);
+    }
+  </script>
+</body>
+</html>
