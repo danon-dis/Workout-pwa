@@ -4,9 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Trainer • PWA</title>
+
+  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
+
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -24,6 +27,7 @@
   </header>
 
   <main id="screen">
+    <!-- Home -->
     <section id="home" class="panel">
       <h2>Ta séance</h2>
       <div class="grid2">
@@ -36,47 +40,56 @@
           <input type="number" id="restInput" min="30" max="180" value="75">
         </label>
       </div>
+
       <div class="program-outline" id="outline"></div>
+
       <div class="row gap">
-        <button id="startBtn" class="primary">Démarrer la séance</button>
-        <button id="resumeBtn" class="secondary">Reprendre</button>
+        <button id="startBtn" class="primary big">Démarrer la séance</button>
+        <button id="resumeBtn" class="secondary big">Reprendre</button>
       </div>
     </section>
 
+    <!-- Player -->
     <section id="player" class="panel hidden">
       <div class="breadcrumbs" id="crumbs"></div>
+
       <div class="exercise-card">
-        <div class="imgwrap" id="imageArea" aria-label="illustration exercice"></div>
+        <div class="imgwrap small" id="imageArea" aria-label="illustration exercice"></div>
         <div class="exoname" id="exoName"></div>
         <div class="exodesc" id="exoDesc"></div>
+
         <div class="timer">
           <div id="timerDisplay">00:00</div>
           <div class="row gap">
-            <button id="timerStart" class="secondary">▶︎</button>
-            <button id="timerPause" class="secondary">⏸</button>
-            <button id="timerReset" class="secondary">↺</button>
+            <button id="timerStart" class="secondary big">▶︎</button>
+            <button id="timerPause" class="secondary big">⏸</button>
+            <button id="timerReset" class="secondary big">↺</button>
           </div>
         </div>
+
         <div class="row gap">
-          <button id="markOk" class="ok">Réussi ✅</button>
-          <button id="markFail" class="fail">Raté ❌</button>
-          <button id="skip" class="ghost">Sauter</button>
+          <button id="markOk" class="ok huge">Réussi ✅</button>
+          <button id="markFail" class="fail huge">Raté ❌</button>
+          <button id="skip" class="ghost big">Sauter</button>
         </div>
       </div>
+
       <div class="row space">
-        <button id="prevBtn" class="ghost">← Précédent</button>
-        <button id="nextBtn" class="primary">Suivant →</button>
+        <button id="prevBtn" class="ghost big">← Précédent</button>
+        <button id="nextBtn" class="primary big">Suivant →</button>
       </div>
     </section>
 
+    <!-- History -->
     <section id="history" class="panel hidden">
       <h2>Historique</h2>
       <div id="historyList"></div>
       <div class="row right">
-        <button id="closeHistory" class="ghost">Fermer</button>
+        <button id="closeHistory" class="ghost big">Fermer</button>
       </div>
     </section>
 
+    <!-- Settings -->
     <section id="settings" class="panel hidden">
       <h2>Réglages</h2>
       <label class="switch">
@@ -84,14 +97,15 @@
         <span>Sons du chrono</span>
       </label>
       <div class="row right">
-        <button id="closeSettings" class="ghost">Fermer</button>
+        <button id="closeSettings" class="ghost big">Fermer</button>
       </div>
     </section>
 
+    <!-- Done -->
     <section id="done" class="panel hidden center">
       <h2>Séance terminée 🎉</h2>
       <p>Bien joué ! Tes résultats ont été enregistrés.</p>
-      <button id="goHome" class="primary">Retour</button>
+      <button id="goHome" class="primary big">Retour</button>
     </section>
   </main>
 
