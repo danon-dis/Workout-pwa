@@ -1,4 +1,4 @@
-// sw.js — PWA Safari/GitHub Pages FIX ✅
+// sw.js — GitHub Pages + Safari iOS OK
 const CACHE_NAME = 'workout-pwa-v2';
 const FILES = [
   '/Workout-pwa/',
@@ -10,15 +10,11 @@ const FILES = [
   '/Workout-pwa/icon-512.png'
 ];
 
-// 📦 INSTALLATION — précache les fichiers
 self.addEventListener('install', (evt) => {
-  evt.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES))
-  );
+  evt.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES)));
   self.skipWaiting();
 });
 
-// 🧹 ACTIVATION — nettoie anciens caches
 self.addEventListener('activate', (evt) => {
   evt.waitUntil(
     caches.keys().then(keys =>
@@ -28,12 +24,9 @@ self.addEventListener('activate', (evt) => {
   self.clients.claim();
 });
 
-// 🚀 FETCH — stratégie cache-first
 self.addEventListener('fetch', (evt) => {
   const req = evt.request;
   const url = new URL(req.url);
-
-  // on ne gère que les GET de notre origine
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
   evt.respondWith(
@@ -44,7 +37,6 @@ self.addEventListener('fetch', (evt) => {
         caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(()=>{});
         return resp;
       }).catch(() => {
-        // fallback: renvoie index.html pour les navigations
         if (req.mode === 'navigate') return caches.match('/Workout-pwa/index.html');
       });
     })
